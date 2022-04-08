@@ -90,19 +90,38 @@ hydro_pub_df_summary = hydro_pub_df %>%
 hydro_pub_df_summary = complete(hydro_pub_df_summary, container.title, pub_year, fill = list(n = 0))
 
 
-#Plot publication numbers
-tol8qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677","#AA4499")
-p1 = ggplot(hydro_pub_df_summary, aes(x=pub_year, y=n, fill=container.title)) + geom_area() + theme_minimal()+xlab("Publication year")+ylab("Articles published per year")+scale_fill_manual(values=tol8qualitative, name = "Journal")+theme(text = element_text(size = 14),legend.position = c(0.4, 0.6), panel.grid = element_blank())
-
-
 #remove all articles that cite zero others, since they are likely missing citation information and would distort the mean.  
 hydro_cites = hydro_pub_df %>%
   filter(cites_count !=0) %>%
   filter(pub_year !=2022) %>%
-  filter(container.title !="Deleted DOIs")
+  filter(container.title !="Deleted DOIs")%>%
+  mutate(pub_year_fact = as.factor(pub_year))%>% #factor level for stats plotting
+  mutate(pub_year_fact = fct_expand(pub_year_fact, "1960", "1961", "1962"))%>% #extend x axis to 1960
+  mutate(pub_year_fact = factor(pub_year_fact, levels(pub_year_fact)[c(60:62,1:59)]))#reorder factor 
+
+
+#Visualisation of the data
+outlier_func = function(x) {
+  subset(x, x < quantile(x,0.1) | quantile(x,0.9) < x)
+}
+
+#Colour vision deficiency safe colour palette by Paul Tol
+tol8qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677","#AA4499")
+
+
+#Plot publication numbers
+p1 = ggplot(hydro_pub_df_summary, aes(x=pub_year, y=n, fill=container.title)) + geom_area() + theme_minimal()+xlab("Publication year")+ylab("Articles published per year")+scale_fill_manual(values=tol8qualitative, name = "Journal")+xlim(1960,2021)+theme(text = element_text(size = 14),legend.position = c(0.4, 0.6), panel.grid = element_blank())
+
 
 #plot reference statistics
-p2 = ggplot(hydro_cites, aes(pub_year, cites_count))+geom_point(alpha = 0.1, shape=16, size = 2)+stat_summary(aes(y = cites_count,group = 1), fun=mean, colour="#88CCEE", geom="line", size = 2)+ theme_minimal()+xlab("Publication year")+ylab("References per article")+theme(text = element_text(size = 14), panel.grid = element_blank())
+p2 = ggplot(hydro_cites, aes(pub_year_fact, cites_count)) + 
+  stat_summary(fun = outlier_func, geom="point", alpha = 0.2, size = 0.5)+
+  stat_summary(
+    fun.min = function(z) { quantile(z,0.1) },
+    fun.max = function(z) { quantile(z,0.9) },
+    fun = median, shape=15, col = "#117733", size = 0.2)+ theme_minimal()+xlab("Publication year")+ylab("References per article")+theme(text = element_text(size = 14), panel.grid = element_blank(), axis.text.x = element_text(angle = 90))+scale_x_discrete(breaks = c("1960", "1980", "2000", "2020"), drop=F)
+
+
 
 p1 + p2 + plot_layout(nrow = 1)+ plot_annotation(tag_levels = 'a')
 ggsave(file = "Articles_referenced_over_time_hydro_comb.pdf",dpi = "retina", width = 12, height = 5 )
