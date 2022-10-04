@@ -114,13 +114,7 @@ p1 = ggplot(hydro_pub_df_summary, aes(x=pub_year, y=n, fill=container.title)) + 
 
 
 #plot reference statistics
-ggplot(hydro_cites, aes(pub_year_fact, cites_count)) + 
-  stat_summary(fun = outlier_func, geom="point", alpha = 0.1, size = 0.5)+
-  stat_summary(
-    fun.min = function(z) { quantile(z,0.1) },
-    fun.max = function(z) { quantile(z,0.9) },
-    fun = median, shape=15, col = "grey60", size = 0.4)+ylim(0,500)+ theme_minimal()+xlab("Publication year")+ylab("References per article")+theme(text = element_text(size = 14), panel.grid = element_blank())+scale_x_discrete(breaks = c("1960", "1980", "2000", "2020"), drop=F)
-
+p2 = ggplot(hydro_cites, aes(pub_year_fact, cites_count)) + geom_boxplot(outlier.color = NA, width = 0.3)+ylim(0,125)+xlab("Publication year")+ylab("References per article")+theme_bw()+theme(text = element_text(size = 16), panel.grid = element_blank())+scale_x_discrete(breaks = c("1960", "1980", "2000", "2020"), drop=F)+ scale_y_continuous(expand = c(0, 0), limits = c(0,130))
 
 p1 + p2 + plot_layout(nrow = 1)+ plot_annotation(tag_levels = 'a')
 ggsave(file = "Articles_referenced_over_time_hydro_comb.pdf",dpi = "retina", width = 12, height = 5 )
